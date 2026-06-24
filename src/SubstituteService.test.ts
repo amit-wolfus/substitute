@@ -8,7 +8,6 @@ import type { BazarrClient, BazarrWanted, WantedEpisode, WantedMovie } from "./c
 import type { ManualSearchResult, MissingSubtitle } from "./clients/bazarr/bazarr.types";
 import type { SonarrClient } from "./clients/SonarrClient";
 import type { RadarrClient } from "./clients/RadarrClient";
-import type { OpenSubtitlesClient } from "./clients/OpenSubtitlesClient";
 
 // Fixtures
 
@@ -42,7 +41,6 @@ function makeConfig(statePath: string, overrides: Partial<Config> = {}): Config 
     radarrApiKey: "key",
     sonarrUrl: "http://sonarr",
     sonarrApiKey: "key",
-    openSubtitlesApiKey: "key",
     pollIntervalMs: 15 * 60_000,
     graceMs: 10 * 60_000,
     recheckCooldownMs: 24 * 3_600_000,
@@ -68,7 +66,6 @@ function makeService(
     mockBazarr,
     {} as unknown as SonarrClient,
     {} as unknown as RadarrClient,
-    {} as unknown as OpenSubtitlesClient,
   );
 }
 
@@ -90,7 +87,6 @@ function makeServiceWithBazarrMock(
     mockBazarr,
     {} as unknown as SonarrClient,
     {} as unknown as RadarrClient,
-    {} as unknown as OpenSubtitlesClient,
   );
   return { svc, mockDownload };
 }

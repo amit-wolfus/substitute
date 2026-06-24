@@ -3,7 +3,6 @@ import { loadConfig } from "./config";
 import { BazarrClient } from "./clients/bazarr";
 import { SonarrClient } from "./clients/SonarrClient";
 import { RadarrClient } from "./clients/RadarrClient";
-import { OpenSubtitlesClient } from "./clients/OpenSubtitlesClient";
 import { SubstituteService } from "./SubstituteService";
 
 async function main(): Promise<void> {
@@ -14,7 +13,6 @@ async function main(): Promise<void> {
     new BazarrClient(config.bazarrUrl, config.bazarrApiKey),
     new SonarrClient(config.sonarrUrl, config.sonarrApiKey),
     new RadarrClient(config.radarrUrl, config.radarrApiKey),
-    new OpenSubtitlesClient(config.openSubtitlesApiKey),
   );
 
   console.log(

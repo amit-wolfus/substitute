@@ -11,7 +11,6 @@ import {
 } from "./clients/bazarr";
 import type { SonarrClient } from "./clients/SonarrClient";
 import type { RadarrClient } from "./clients/RadarrClient";
-import type { OpenSubtitlesClient } from "./clients/OpenSubtitlesClient";
 
 type Candidate = {
   item: WantedEntry;
@@ -54,7 +53,6 @@ export class SubstituteService {
     private readonly bazarr: BazarrClient,
     private readonly sonarr: SonarrClient,
     private readonly radarr: RadarrClient,
-    private readonly openSubtitles: OpenSubtitlesClient,
   ) {}
 
   async runOnce(): Promise<void> {
