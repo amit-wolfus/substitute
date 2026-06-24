@@ -1,6 +1,6 @@
 import { setTimeout as sleep } from "timers/promises";
 import { loadConfig } from "./config.js";
-import { BazarrClient } from "./clients/BazarrClient.js";
+import { BazarrClient } from "./clients/bazarr/index.js";
 import { SonarrClient } from "./clients/SonarrClient.js";
 import { RadarrClient } from "./clients/RadarrClient.js";
 import { OpenSubtitlesClient } from "./clients/OpenSubtitlesClient.js";
