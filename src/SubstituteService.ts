@@ -1,10 +1,10 @@
-import type { Config } from "./config.js";
-import { loadState, saveState, type State } from "./state.js";
-import type { BazarrClient } from "./clients/bazarr/index.js";
-import { isMovie, isShow, type MissingSubtitle, type WantedEntry } from "./clients/bazarr/index.js";
-import type { SonarrClient } from "./clients/SonarrClient.js";
-import type { RadarrClient } from "./clients/RadarrClient.js";
-import type { OpenSubtitlesClient } from "./clients/OpenSubtitlesClient.js";
+import type { Config } from "./config";
+import { loadState, saveState, type State } from "./state";
+import type { BazarrClient } from "./clients/bazarr";
+import { isMovie, isShow, type MissingSubtitle, type WantedEntry } from "./clients/bazarr";
+import type { SonarrClient } from "./clients/SonarrClient";
+import type { RadarrClient } from "./clients/RadarrClient";
+import type { OpenSubtitlesClient } from "./clients/OpenSubtitlesClient";
 
 type Candidate = {
   item: WantedEntry;

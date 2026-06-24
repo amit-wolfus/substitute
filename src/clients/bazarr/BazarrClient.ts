@@ -6,7 +6,7 @@ import type {
   RawWantedResponse,
   WantedEpisode,
   WantedMovie,
-} from "./bazarr.types.js";
+} from "./bazarr.types";
 
 export interface BazarrWanted {
   movies: WantedMovie[];

@@ -1,10 +1,10 @@
 import { setTimeout as sleep } from "timers/promises";
-import { loadConfig } from "./config.js";
-import { BazarrClient } from "./clients/bazarr/index.js";
-import { SonarrClient } from "./clients/SonarrClient.js";
-import { RadarrClient } from "./clients/RadarrClient.js";
-import { OpenSubtitlesClient } from "./clients/OpenSubtitlesClient.js";
-import { SubstituteService } from "./SubstituteService.js";
+import { loadConfig } from "./config";
+import { BazarrClient } from "./clients/bazarr";
+import { SonarrClient } from "./clients/SonarrClient";
+import { RadarrClient } from "./clients/RadarrClient";
+import { OpenSubtitlesClient } from "./clients/OpenSubtitlesClient";
+import { SubstituteService } from "./SubstituteService";
 
 async function main(): Promise<void> {
   const config = loadConfig();

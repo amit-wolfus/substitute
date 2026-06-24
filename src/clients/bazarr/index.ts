@@ -1,9 +1,9 @@
-export { BazarrClient } from "./BazarrClient.js";
-export type { BazarrWanted } from "./BazarrClient.js";
+export { BazarrClient } from "./BazarrClient";
+export type { BazarrWanted } from "./BazarrClient";
 export type {
   MissingSubtitle,
   WantedEntry,
   WantedEpisode,
   WantedMovie,
-} from "./bazarr.types.js";
-export { isMovie, isShow } from "./bazarr.types.js";
+} from "./bazarr.types";
+export { isMovie, isShow } from "./bazarr.types";
