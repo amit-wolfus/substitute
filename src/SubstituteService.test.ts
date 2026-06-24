@@ -146,14 +146,19 @@ describe("SubstituteService.runOnce", () => {
   });
 
   it("passes to processCandidate once the grace period has elapsed", async () => {
-    const svc = makeService(statePath, { movies: [MOVIE], episodes: [] }, { graceMs: 10 * 60_000 });
+    const { svc } = makeServiceWithBazarrMock(
+      statePath,
+      { movies: [MOVIE], episodes: [] },
+      [],
+      { graceMs: 10 * 60_000 },
+    );
     await svc.runOnce(); // first-seen
     logSpy.mockClear();
 
     jest.advanceTimersByTime(11 * 60_000); // past grace
     await svc.runOnce();
 
-    expect(loggedTags(logSpy)).toContain("candidate-noop");
+    expect(loggedTags(logSpy)).toContain("no-bazarr-match");
     expect(loggedTags(logSpy)).not.toContain("grace-skip");
   });
 
@@ -174,16 +179,17 @@ describe("SubstituteService.runOnce", () => {
   });
 
   it("passes items in allowlisted language", async () => {
-    const svc = makeService(
+    const { svc } = makeServiceWithBazarrMock(
       statePath,
       { movies: [MOVIE], episodes: [] },
+      [],
       { languageAllowlist: ["he"], graceMs: 0 },
     );
     await svc.runOnce(); // first-seen (always skips first encounter regardless of graceMs)
     logSpy.mockClear();
 
     await svc.runOnce(); // graceMs=0 → elapsed (0ms) >= grace (0ms) → passes
-    expect(loggedTags(logSpy)).toContain("candidate-noop");
+    expect(loggedTags(logSpy)).toContain("no-bazarr-match");
     expect(loggedTags(logSpy)).not.toContain("allowlist-skip");
   });
 

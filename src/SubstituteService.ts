@@ -1,7 +1,7 @@
 import type { Config } from "./config";
 import { loadState, saveState, type State } from "./state";
 import type { BazarrClient } from "./clients/bazarr";
-import { isMovie, isShow, type MissingSubtitle, type WantedEntry } from "./clients/bazarr";
+import { isMovie, type MissingSubtitle, type WantedEntry } from "./clients/bazarr";
 import type { SonarrClient } from "./clients/SonarrClient";
 import type { RadarrClient } from "./clients/RadarrClient";
 import type { OpenSubtitlesClient } from "./clients/OpenSubtitlesClient";
@@ -11,10 +11,11 @@ type Candidate = {
   lang: MissingSubtitle;
 };
 
-function candidateKey(c: Candidate): string {
-  return isMovie(c.item)
+function candidateKey(c: Candidate, dryRun = false): string {
+  const base = isMovie(c.item)
     ? `radarr:${c.item.radarrId}:${c.lang.code2}`
     : `sonarr:${c.item.sonarrEpisodeId}:${c.lang.code2}`;
+  return dryRun ? `dryRun:${base}` : base;
 }
 
 function candidateLabel(c: Candidate): string {
@@ -115,7 +116,40 @@ export class SubstituteService {
     );
   }
 
-  private async processCandidate(c: Candidate, _state: State): Promise<void> {
-    log("info", "candidate-noop", `${candidateLabel(c)} lang=${c.lang.code2} — step 4+ not yet implemented`);
+  private async processCandidate(c: Candidate, state: State): Promise<void> {
+    const label = candidateLabel(c);
+    const nowMs = Date.now();
+
+    const results = await this.bazarr.manualSearch(c.item, c.lang);
+    const match = results
+      .filter(
+        (r) =>
+          r.language === c.lang.code2 &&
+          r.forced === c.lang.forced &&
+          r.hearingImpaired === c.lang.hi,
+      )
+      .sort((a, b) => b.score - a.score)[0];
+
+    if (!match) {
+      log("info", "no-bazarr-match", `${label} lang=${c.lang.code2} — no match found → step 5+ not yet implemented`);
+      return;
+    }
+
+    const releaseTag = match.releaseInfo[0] ?? "unknown";
+    const actKey = candidateKey(c, this.config.dryRun);
+
+    if (this.config.dryRun) {
+      log("info", "would-download", `${label} lang=${c.lang.code2} provider=${match.provider} release="${releaseTag}"`);
+    } else {
+      await this.bazarr.downloadSubtitle(c.item, c.lang, match);
+      log("info", "bazarr-match", `${label} lang=${c.lang.code2} provider=${match.provider} release="${releaseTag}"`);
+    }
+
+    const entry = state.items[actKey];
+    if (entry) {
+      entry.lastActedMs = nowMs;
+    } else {
+      state.items[actKey] = { firstSeenMs: nowMs, lastActedMs: nowMs };
+    }
   }
 }
