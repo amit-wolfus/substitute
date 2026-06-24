@@ -5,7 +5,7 @@ import type { Config } from "./config";
 import { loadState, saveState } from "./state";
 import { SubstituteService } from "./SubstituteService";
 import type { BazarrClient, BazarrWanted, WantedEpisode, WantedMovie } from "./clients/bazarr";
-import type { ManualSearchResult, MissingSubtitle } from "./clients/bazarr/bazarr.types";
+import type { ManualSearchResult } from "./clients/bazarr/bazarr.types";
 import type { SonarrClient } from "./clients/SonarrClient";
 import type { RadarrClient } from "./clients/RadarrClient";
 
@@ -69,17 +69,16 @@ function makeService(
   );
 }
 
-function makeServiceWithBazarrMock(
+function makeServiceWithSearch(
   statePath: string,
   wanted: BazarrWanted,
   manualSearchResults: ManualSearchResult[],
   configOverrides: Partial<Config> = {},
-): { svc: SubstituteService; mockDownload: jest.Mock } {
-  const mockDownload = jest.fn().mockResolvedValue(undefined);
+): { svc: SubstituteService; mockSearch: jest.Mock } {
+  const mockSearch = jest.fn().mockResolvedValue(manualSearchResults);
   const mockBazarr = {
-    getWanted: jest.fn().mockResolvedValue(wanted),
-    manualSearch: jest.fn().mockResolvedValue(manualSearchResults),
-    downloadSubtitle: mockDownload,
+    getWanted:    jest.fn().mockResolvedValue(wanted),
+    manualSearch: mockSearch,
   } as unknown as BazarrClient;
 
   const svc = new SubstituteService(
@@ -88,7 +87,7 @@ function makeServiceWithBazarrMock(
     {} as unknown as SonarrClient,
     {} as unknown as RadarrClient,
   );
-  return { svc, mockDownload };
+  return { svc, mockSearch };
 }
 
 // Extract log tags from console.log calls to avoid coupling to exact message text.
@@ -142,7 +141,7 @@ describe("SubstituteService.runOnce", () => {
   });
 
   it("passes to processCandidate once the grace period has elapsed", async () => {
-    const { svc } = makeServiceWithBazarrMock(
+    const { svc } = makeServiceWithSearch(
       statePath,
       { movies: [MOVIE], episodes: [] },
       [],
@@ -154,7 +153,7 @@ describe("SubstituteService.runOnce", () => {
     jest.advanceTimersByTime(11 * 60_000); // past grace
     await svc.runOnce();
 
-    expect(loggedTags(logSpy)).toContain("no-bazarr-match");
+    expect(loggedTags(logSpy)).toContain("no-subs-found");
     expect(loggedTags(logSpy)).not.toContain("grace-skip");
   });
 
@@ -175,7 +174,7 @@ describe("SubstituteService.runOnce", () => {
   });
 
   it("passes items in allowlisted language", async () => {
-    const { svc } = makeServiceWithBazarrMock(
+    const { svc } = makeServiceWithSearch(
       statePath,
       { movies: [MOVIE], episodes: [] },
       [],
@@ -185,7 +184,7 @@ describe("SubstituteService.runOnce", () => {
     logSpy.mockClear();
 
     await svc.runOnce(); // graceMs=0 → elapsed (0ms) >= grace (0ms) → passes
-    expect(loggedTags(logSpy)).toContain("no-bazarr-match");
+    expect(loggedTags(logSpy)).toContain("no-subs-found");
     expect(loggedTags(logSpy)).not.toContain("allowlist-skip");
   });
 
@@ -236,15 +235,7 @@ describe("SubstituteService.runOnce", () => {
   });
 });
 
-// Helpers shared by step-4 tests
-
-const LANG_HE: MissingSubtitle = {
-  name: "Hebrew",
-  code2: "he",
-  code3: "heb",
-  forced: false,
-  hi: false,
-};
+// Fixtures shared by step-5 tests
 
 function makeResult(overrides: Partial<ManualSearchResult> = {}): ManualSearchResult {
   return {
@@ -253,15 +244,15 @@ function makeResult(overrides: Partial<ManualSearchResult> = {}): ManualSearchRe
     subtitle: "blob==",
     forced: false,
     hearingImpaired: false,
-    score: 360,
-    releaseInfo: ["Pressure.2026.1080p.WEBRip"],
-    matches: [],
-    dontMatches: [],
+    score: 86,
+    releaseInfo: ["Pressure.2026.1080p.MA.WEB-DL"],
+    matches: ["imdb_id", "title"],
+    dontMatches: ["hash", "release_group"],
     ...overrides,
   };
 }
 
-// A movie that has already passed the grace period so processCandidate is reached.
+// Seeds state so the candidate is past grace and processCandidate is reached.
 async function seedPastGrace(statePath: string): Promise<void> {
   const nowMs = Date.now();
   await saveState(statePath, {
@@ -272,7 +263,7 @@ async function seedPastGrace(statePath: string): Promise<void> {
   });
 }
 
-describe("SubstituteService.processCandidate — step 4", () => {
+describe("SubstituteService.processCandidate — step 5", () => {
   let statePath: string;
   let logSpy: jest.SpyInstance;
 
@@ -289,175 +280,122 @@ describe("SubstituteService.processCandidate — step 4", () => {
     await rm(statePath, { force: true });
   });
 
-  it("calls downloadSubtitle and logs bazarr-match when dryRun=false and match found", async () => {
+  it("logs no-subs-found and sets lastActedMs when manualSearch returns no matching results", async () => {
     await seedPastGrace(statePath);
-    const { svc, mockDownload } = makeServiceWithBazarrMock(
-      statePath,
-      { movies: [MOVIE], episodes: [] },
-      [makeResult()],
-      { graceMs: 0, dryRun: false },
-    );
+    const { svc } = makeServiceWithSearch(statePath, { movies: [MOVIE], episodes: [] }, [], { graceMs: 0 });
 
     await svc.runOnce();
 
-    expect(mockDownload).toHaveBeenCalledTimes(1);
-    expect(loggedTags(logSpy)).toContain("bazarr-match");
-    expect(loggedTags(logSpy)).not.toContain("would-download");
-  });
-
-  it("skips downloadSubtitle and logs would-download when dryRun=true and match found", async () => {
-    await seedPastGrace(statePath);
-    const { svc, mockDownload } = makeServiceWithBazarrMock(
-      statePath,
-      { movies: [MOVIE], episodes: [] },
-      [makeResult()],
-      { graceMs: 0, dryRun: true },
-    );
-
-    await svc.runOnce();
-
-    expect(mockDownload).not.toHaveBeenCalled();
-    expect(loggedTags(logSpy)).toContain("would-download");
-    expect(loggedTags(logSpy)).not.toContain("bazarr-match");
-  });
-
-  it("sets lastActedMs under dryRun: key when dryRun=true", async () => {
-    await seedPastGrace(statePath);
-    const { svc } = makeServiceWithBazarrMock(
-      statePath,
-      { movies: [MOVIE], episodes: [] },
-      [makeResult()],
-      { graceMs: 0, dryRun: true },
-    );
-
-    await svc.runOnce();
-
-    const state = await loadState(statePath);
-    expect(state.items["dryRun:radarr:262:he"]?.lastActedMs).toBe(Date.now());
-    expect(state.items["radarr:262:he"]?.lastActedMs).toBeNull();
-  });
-
-  it("sets lastActedMs under the plain key when dryRun=false", async () => {
-    await seedPastGrace(statePath);
-    const { svc } = makeServiceWithBazarrMock(
-      statePath,
-      { movies: [MOVIE], episodes: [] },
-      [makeResult()],
-      { graceMs: 0, dryRun: false },
-    );
-
-    await svc.runOnce();
-
+    expect(loggedTags(logSpy)).toContain("no-subs-found");
     const state = await loadState(statePath);
     expect(state.items["radarr:262:he"]?.lastActedMs).toBe(Date.now());
-    expect(state.items["dryRun:radarr:262:he"]).toBeUndefined();
   });
 
-  it("logs no-bazarr-match and does not call downloadSubtitle when no match found", async () => {
+  it("logs subs-other-releases and does not set lastActedMs when matches are found", async () => {
     await seedPastGrace(statePath);
-    const { svc, mockDownload } = makeServiceWithBazarrMock(
+    const { svc } = makeServiceWithSearch(
       statePath,
       { movies: [MOVIE], episodes: [] },
-      [],
-      { graceMs: 0, dryRun: false },
+      [makeResult()],
+      { graceMs: 0 },
     );
 
     await svc.runOnce();
 
-    expect(mockDownload).not.toHaveBeenCalled();
-    expect(loggedTags(logSpy)).toContain("no-bazarr-match");
-  });
-
-  it("does not set lastActedMs when no match found", async () => {
-    await seedPastGrace(statePath);
-    const { svc } = makeServiceWithBazarrMock(
-      statePath,
-      { movies: [MOVIE], episodes: [] },
-      [],
-      { graceMs: 0, dryRun: false },
-    );
-
-    await svc.runOnce();
-
+    expect(loggedTags(logSpy)).toContain("subs-other-releases");
     const state = await loadState(statePath);
     expect(state.items["radarr:262:he"]?.lastActedMs).toBeNull();
   });
 
-  it("picks the highest-score result when multiple results match", async () => {
+  it("includes the match count in the subs-other-releases log message", async () => {
     await seedPastGrace(statePath);
-    const low  = makeResult({ score: 100, provider: "subdl" });
-    const high = makeResult({ score: 360, provider: "opensubtitlescom" });
-    const { svc, mockDownload } = makeServiceWithBazarrMock(
+    const { svc } = makeServiceWithSearch(
       statePath,
       { movies: [MOVIE], episodes: [] },
-      [low, high],
-      { graceMs: 0, dryRun: false },
+      [makeResult(), makeResult({ provider: "subdl" })],
+      { graceMs: 0 },
     );
 
     await svc.runOnce();
 
-    const calledWith = mockDownload.mock.calls[0] as unknown[];
-    const result = calledWith[2] as ManualSearchResult;
-    expect(result.provider).toBe("opensubtitlescom");
+    const line = logSpy.mock.calls.find(([l]: [string]) => l?.includes("subs-other-releases"))?.[0] as string;
+    expect(line).toContain("2");
   });
 
-  it("excludes results where hearingImpaired does not match lang.hi", async () => {
+  it("calls manualSearch with the movie item", async () => {
     await seedPastGrace(statePath);
-    const { svc, mockDownload } = makeServiceWithBazarrMock(
+    const { svc, mockSearch } = makeServiceWithSearch(
       statePath,
       { movies: [MOVIE], episodes: [] },
-      [makeResult({ hearingImpaired: true })], // lang.hi is false
-      { graceMs: 0, dryRun: false },
+      [],
+      { graceMs: 0 },
     );
 
     await svc.runOnce();
 
-    expect(mockDownload).not.toHaveBeenCalled();
-    expect(loggedTags(logSpy)).toContain("no-bazarr-match");
+    expect(mockSearch).toHaveBeenCalledWith(
+      expect.objectContaining({ kind: "movie", radarrId: 262 }),
+      expect.anything(),
+    );
   });
 
-  it("excludes results where forced does not match lang.forced", async () => {
+  it("calls manualSearch with the episode item and logs no-subs-found when empty", async () => {
     await seedPastGrace(statePath);
-    const { svc, mockDownload } = makeServiceWithBazarrMock(
+    const { svc, mockSearch } = makeServiceWithSearch(
       statePath,
-      { movies: [MOVIE], episodes: [] },
-      [makeResult({ forced: true })], // lang.forced is false
-      { graceMs: 0, dryRun: false },
+      { movies: [], episodes: [EPISODE] },
+      [],
+      { graceMs: 0 },
     );
 
     await svc.runOnce();
 
-    expect(mockDownload).not.toHaveBeenCalled();
-    expect(loggedTags(logSpy)).toContain("no-bazarr-match");
+    expect(mockSearch).toHaveBeenCalledWith(
+      expect.objectContaining({ kind: "episode", sonarrEpisodeId: 2409 }),
+      expect.anything(),
+    );
+    expect(loggedTags(logSpy)).toContain("no-subs-found");
   });
 
-  it("excludes results where language does not match lang.code2", async () => {
+  it("treats a result with wrong language as no match", async () => {
     await seedPastGrace(statePath);
-    const { svc, mockDownload } = makeServiceWithBazarrMock(
+    const { svc } = makeServiceWithSearch(
       statePath,
       { movies: [MOVIE], episodes: [] },
       [makeResult({ language: "en" })],
-      { graceMs: 0, dryRun: false },
+      { graceMs: 0 },
     );
 
     await svc.runOnce();
 
-    expect(mockDownload).not.toHaveBeenCalled();
+    expect(loggedTags(logSpy)).toContain("no-subs-found");
   });
 
-  it("calls downloadSubtitle for an episode candidate", async () => {
+  it("treats a result with mismatched forced flag as no match", async () => {
     await seedPastGrace(statePath);
-    const { svc, mockDownload } = makeServiceWithBazarrMock(
+    const { svc } = makeServiceWithSearch(
       statePath,
-      { movies: [], episodes: [EPISODE] },
-      [makeResult()],
-      { graceMs: 0, dryRun: false },
+      { movies: [MOVIE], episodes: [] },
+      [makeResult({ forced: true })],
+      { graceMs: 0 },
     );
 
     await svc.runOnce();
 
-    expect(mockDownload).toHaveBeenCalledTimes(1);
-    const calledWith = mockDownload.mock.calls[0] as unknown[];
-    expect(calledWith[0]).toMatchObject({ kind: "episode", sonarrEpisodeId: 2409 });
+    expect(loggedTags(logSpy)).toContain("no-subs-found");
+  });
+
+  it("treats a result with mismatched hearingImpaired flag as no match", async () => {
+    await seedPastGrace(statePath);
+    const { svc } = makeServiceWithSearch(
+      statePath,
+      { movies: [MOVIE], episodes: [] },
+      [makeResult({ hearingImpaired: true })],
+      { graceMs: 0 },
+    );
+
+    await svc.runOnce();
+
+    expect(loggedTags(logSpy)).toContain("no-subs-found");
   });
 });

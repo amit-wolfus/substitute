@@ -3,7 +3,6 @@ import { loadState, saveState, type State } from "./state";
 import type { BazarrClient } from "./clients/bazarr";
 import {
   isMovie,
-  type ManualSearchResult,
   type MissingSubtitle,
   type WantedEntry,
   type WantedEpisode,
@@ -31,11 +30,10 @@ function buildCandidates(movies: WantedMovie[], episodes: WantedEpisode[]): Cand
   ];
 }
 
-function candidateKey(c: Candidate, dryRun = false): string {
-  const base = isMovie(c.item)
+function candidateKey(c: Candidate): string {
+  return isMovie(c.item)
     ? `radarr:${c.item.radarrId}:${c.lang.code2}`
     : `sonarr:${c.item.sonarrEpisodeId}:${c.lang.code2}`;
-  return dryRun ? `dryRun:${base}` : base;
 }
 
 function candidateLabel(c: Candidate): string {
@@ -118,44 +116,26 @@ export class SubstituteService {
   }
 
   private async processCandidate(c: Candidate, state: State, nowMs: number): Promise<void> {
-    const match = await this.findBestBazarrMatch(c);
-    if (!match) {
-      log("info", "no-bazarr-match", `${candidateLabel(c)} lang=${c.lang.code2} — no match found → step 5+ not yet implemented`);
+    const key   = candidateKey(c);
+    const label = candidateLabel(c);
+    const lang  = c.lang.code2;
+
+    const results = await this.bazarr.manualSearch(c.item, c.lang);
+    const matches = results.filter(
+      (r) => r.language === lang && r.forced === c.lang.forced && r.hearingImpaired === c.lang.hi,
+    );
+
+    if (matches.length === 0) {
+      log("info", "no-subs-found", `${label} lang=${lang} — no subtitles found by any provider`);
+      this.recordActed(key, state, nowMs);
       return;
     }
-    await this.applyBazarrMatch(c, match, state, nowMs);
-  }
 
-  private async findBestBazarrMatch(c: Candidate): Promise<ManualSearchResult | undefined> {
-    const results = await this.bazarr.manualSearch(c.item, c.lang);
-    return results
-      .filter(
-        (r) =>
-          r.language === c.lang.code2 &&
-          r.forced === c.lang.forced &&
-          r.hearingImpaired === c.lang.hi,
-      )
-      .sort((a, b) => b.score - a.score)[0];
-  }
-
-  private async applyBazarrMatch(
-    c: Candidate,
-    match: ManualSearchResult,
-    state: State,
-    nowMs: number,
-  ): Promise<void> {
-    const label = candidateLabel(c);
-    const releaseTag = match.releaseInfo[0] ?? "unknown";
-    const actKey = candidateKey(c, this.config.dryRun);
-
-    if (this.config.dryRun) {
-      log("info", "would-download", `${label} lang=${c.lang.code2} provider=${match.provider} release="${releaseTag}"`);
-    } else {
-      await this.bazarr.downloadSubtitle(c.item, c.lang, match);
-      log("info", "bazarr-match", `${label} lang=${c.lang.code2} provider=${match.provider} release="${releaseTag}"`);
-    }
-
-    this.recordActed(actKey, state, nowMs);
+    log(
+      "info",
+      "subs-other-releases",
+      `${label} lang=${lang} — found ${matches.length} sub(s) for other releases → step 6 not yet implemented`,
+    );
   }
 
   private recordActed(key: string, state: State, nowMs: number): void {
