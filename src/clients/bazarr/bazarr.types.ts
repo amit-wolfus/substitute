@@ -63,6 +63,47 @@ export interface WantedEpisode {
 
 export type WantedEntry = WantedMovie | WantedEpisode;
 
+// Manual search result types.
+
+export interface RawManualSearchResult {
+  language: string;
+  provider: string;
+  subtitle: string;
+  forced: "True" | "False";
+  hearing_impaired: "True" | "False";
+  original_format: string;
+  score: number;
+  release_info: string[];
+  matches: string[];
+  dont_matches: string[];
+}
+
+export interface ManualSearchResult {
+  language: string;
+  provider: string;
+  subtitle: string;
+  forced: boolean;
+  hearingImpaired: boolean;
+  score: number;
+  releaseInfo: string[];
+  matches: string[];
+  dontMatches: string[];
+}
+
+export function mapManualSearchResult(r: RawManualSearchResult): ManualSearchResult {
+  return {
+    language: r.language,
+    provider: r.provider,
+    subtitle: r.subtitle,
+    forced: r.forced === "True",
+    hearingImpaired: r.hearing_impaired === "True",
+    score: r.score,
+    releaseInfo: r.release_info,
+    matches: r.matches,
+    dontMatches: r.dont_matches,
+  };
+}
+
 // Type guards.
 
 export function isMovie(entry: WantedEntry): entry is WantedMovie {
