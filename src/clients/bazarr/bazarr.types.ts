@@ -1,4 +1,4 @@
-// Raw API shapes — snake_case as received over the wire; private to this module.
+// Raw API shapes — snake_case as received over the wire.
 
 export interface RawMissingSubtitle {
   name: string;
@@ -63,10 +63,42 @@ export interface WantedEpisode {
 
 export type WantedEntry = WantedMovie | WantedEpisode;
 
+// Type guards.
+
 export function isMovie(entry: WantedEntry): entry is WantedMovie {
   return entry.kind === "movie";
 }
 
 export function isShow(entry: WantedEntry): entry is WantedEpisode {
   return entry.kind === "episode";
+}
+
+// Mappers — convert raw API responses to public camelCase types.
+
+export function mapSubtitle(r: RawMissingSubtitle): MissingSubtitle {
+  return { name: r.name, code2: r.code2, code3: r.code3, forced: r.forced, hi: r.hi };
+}
+
+export function mapMovie(r: RawMovie): WantedMovie {
+  return {
+    kind: "movie",
+    title: r.title,
+    radarrId: r.radarrId,
+    sceneName: r.sceneName,
+    missingSubtitles: r.missing_subtitles.map(mapSubtitle),
+  };
+}
+
+export function mapEpisode(r: RawEpisode): WantedEpisode {
+  return {
+    kind: "episode",
+    seriesTitle: r.seriesTitle,
+    episodeTitle: r.episodeTitle,
+    episodeNumber: r.episode_number,
+    sonarrSeriesId: r.sonarrSeriesId,
+    sonarrEpisodeId: r.sonarrEpisodeId,
+    sceneName: r.sceneName,
+    seriesType: r.seriesType,
+    missingSubtitles: r.missing_subtitles.map(mapSubtitle),
+  };
 }

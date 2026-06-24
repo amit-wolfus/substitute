@@ -1,44 +1,16 @@
-import type {
-  MissingSubtitle,
-  RawEpisode,
-  RawMissingSubtitle,
-  RawMovie,
-  RawWantedResponse,
-  WantedEpisode,
-  WantedMovie,
+import {
+  mapEpisode,
+  mapMovie,
+  type RawEpisode,
+  type RawMovie,
+  type RawWantedResponse,
+  type WantedEpisode,
+  type WantedMovie,
 } from "./bazarr.types";
 
 export interface BazarrWanted {
   movies: WantedMovie[];
   episodes: WantedEpisode[];
-}
-
-function mapSubtitle(r: RawMissingSubtitle): MissingSubtitle {
-  return { name: r.name, code2: r.code2, code3: r.code3, forced: r.forced, hi: r.hi };
-}
-
-function mapMovie(r: RawMovie): WantedMovie {
-  return {
-    kind: "movie",
-    title: r.title,
-    radarrId: r.radarrId,
-    sceneName: r.sceneName,
-    missingSubtitles: r.missing_subtitles.map(mapSubtitle),
-  };
-}
-
-function mapEpisode(r: RawEpisode): WantedEpisode {
-  return {
-    kind: "episode",
-    seriesTitle: r.seriesTitle,
-    episodeTitle: r.episodeTitle,
-    episodeNumber: r.episode_number,
-    sonarrSeriesId: r.sonarrSeriesId,
-    sonarrEpisodeId: r.sonarrEpisodeId,
-    sceneName: r.sceneName,
-    seriesType: r.seriesType,
-    missingSubtitles: r.missing_subtitles.map(mapSubtitle),
-  };
 }
 
 export class BazarrClient {
