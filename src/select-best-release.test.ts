@@ -1,5 +1,5 @@
 import type { ArrRelease } from "./clients/arr.types";
-import { selectBestRelease } from "./select-best-release";
+import { isCutoffOnly, selectBestRelease } from "./select-best-release";
 
 function makeRelease(overrides: Partial<ArrRelease> = {}): ArrRelease {
   return {
@@ -18,6 +18,37 @@ function makeRelease(overrides: Partial<ArrRelease> = {}): ArrRelease {
 }
 
 const CANDIDATE = ["Show.S01E01.1080p.WEB-DL.KyoGo"];
+const CUTOFF_REJECTION = ["Existing file meets cutoff: WEBDL-1080p"];
+
+describe("isCutoffOnly", () => {
+  it("returns true when the only rejection is a cutoff message", () => {
+    expect(isCutoffOnly(makeRelease({ approved: false, rejections: CUTOFF_REJECTION }))).toBe(true);
+  });
+
+  it("returns false when approved", () => {
+    expect(isCutoffOnly(makeRelease({ approved: true, rejections: [] }))).toBe(false);
+  });
+
+  it("returns false when rejections is empty", () => {
+    expect(isCutoffOnly(makeRelease({ approved: false, rejections: [] }))).toBe(false);
+  });
+
+  it("returns false when rejections is undefined", () => {
+    expect(isCutoffOnly(makeRelease({ approved: false }))).toBe(false);
+  });
+
+  it("returns false when there are non-cutoff rejections alongside a cutoff one", () => {
+    expect(
+      isCutoffOnly(makeRelease({ approved: false, rejections: [...CUTOFF_REJECTION, "Custom format score too low"] })),
+    ).toBe(false);
+  });
+
+  it("returns false when the rejection is not a cutoff message", () => {
+    expect(
+      isCutoffOnly(makeRelease({ approved: false, rejections: ["Custom Formats x265 (HD) have score -10000"] })),
+    ).toBe(false);
+  });
+});
 
 describe("selectBestRelease", () => {
   it("returns undefined for an empty release list", () => {
@@ -80,5 +111,25 @@ describe("selectBestRelease", () => {
   it("matches candidate names case-insensitively via titlesMatch", () => {
     const r = makeRelease({ title: "SHOW.S01E01.1080P.WEB-DL.KYOGO" });
     expect(selectBestRelease([r], CANDIDATE)).toBe(r);
+  });
+
+  it("includes a cutoff-only-rejected release that title-matches", () => {
+    const r = makeRelease({ approved: false, rejections: CUTOFF_REJECTION });
+    expect(selectBestRelease([r], CANDIDATE)).toBe(r);
+  });
+
+  it("excludes a release with mixed rejections (cutoff + format)", () => {
+    const r = makeRelease({ approved: false, rejections: [...CUTOFF_REJECTION, "Custom format score too low"] });
+    expect(selectBestRelease([r], CANDIDATE)).toBeUndefined();
+  });
+
+  it("excludes an unapproved release with no rejections array", () => {
+    expect(selectBestRelease([makeRelease({ approved: false })], CANDIDATE)).toBeUndefined();
+  });
+
+  it("ranks cutoff-only releases by score alongside approved ones", () => {
+    const approved = makeRelease({ approved: true, customFormatScore: 5, guid: "approved" });
+    const cutoff = makeRelease({ approved: false, rejections: CUTOFF_REJECTION, customFormatScore: 10, guid: "cutoff" });
+    expect(selectBestRelease([approved, cutoff], CANDIDATE)?.guid).toBe("cutoff");
   });
 });
