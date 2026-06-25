@@ -69,7 +69,7 @@ function makeService(
   );
 }
 
-function makeServiceWithSearch(
+function makeServiceWithBazarrMock(
   statePath: string,
   wanted: BazarrWanted,
   manualSearchResults: ManualSearchResult[],
@@ -141,7 +141,7 @@ describe("SubstituteService.runOnce", () => {
   });
 
   it("passes to processCandidate once the grace period has elapsed", async () => {
-    const { svc } = makeServiceWithSearch(
+    const { svc } = makeServiceWithBazarrMock(
       statePath,
       { movies: [MOVIE], episodes: [] },
       [],
@@ -174,7 +174,7 @@ describe("SubstituteService.runOnce", () => {
   });
 
   it("passes items in allowlisted language", async () => {
-    const { svc } = makeServiceWithSearch(
+    const { svc } = makeServiceWithBazarrMock(
       statePath,
       { movies: [MOVIE], episodes: [] },
       [],
@@ -235,8 +235,6 @@ describe("SubstituteService.runOnce", () => {
   });
 });
 
-// Fixtures shared by step-5 tests
-
 function makeResult(overrides: Partial<ManualSearchResult> = {}): ManualSearchResult {
   return {
     language: "he",
@@ -282,7 +280,7 @@ describe("SubstituteService.processCandidate — step 5", () => {
 
   it("logs no-subs-found and sets lastActedMs when manualSearch returns no matching results", async () => {
     await seedPastGrace(statePath);
-    const { svc } = makeServiceWithSearch(statePath, { movies: [MOVIE], episodes: [] }, [], { graceMs: 0 });
+    const { svc } = makeServiceWithBazarrMock(statePath, { movies: [MOVIE], episodes: [] }, [], { graceMs: 0 });
 
     await svc.runOnce();
 
@@ -293,7 +291,7 @@ describe("SubstituteService.processCandidate — step 5", () => {
 
   it("logs subs-other-releases and does not set lastActedMs when matches are found", async () => {
     await seedPastGrace(statePath);
-    const { svc } = makeServiceWithSearch(
+    const { svc } = makeServiceWithBazarrMock(
       statePath,
       { movies: [MOVIE], episodes: [] },
       [makeResult()],
@@ -309,7 +307,7 @@ describe("SubstituteService.processCandidate — step 5", () => {
 
   it("includes the match count in the subs-other-releases log message", async () => {
     await seedPastGrace(statePath);
-    const { svc } = makeServiceWithSearch(
+    const { svc } = makeServiceWithBazarrMock(
       statePath,
       { movies: [MOVIE], episodes: [] },
       [makeResult(), makeResult({ provider: "subdl" })],
@@ -324,7 +322,7 @@ describe("SubstituteService.processCandidate — step 5", () => {
 
   it("calls manualSearch with the movie item", async () => {
     await seedPastGrace(statePath);
-    const { svc, mockSearch } = makeServiceWithSearch(
+    const { svc, mockSearch } = makeServiceWithBazarrMock(
       statePath,
       { movies: [MOVIE], episodes: [] },
       [],
@@ -341,7 +339,7 @@ describe("SubstituteService.processCandidate — step 5", () => {
 
   it("calls manualSearch with the episode item and logs no-subs-found when empty", async () => {
     await seedPastGrace(statePath);
-    const { svc, mockSearch } = makeServiceWithSearch(
+    const { svc, mockSearch } = makeServiceWithBazarrMock(
       statePath,
       { movies: [], episodes: [EPISODE] },
       [],
@@ -359,7 +357,7 @@ describe("SubstituteService.processCandidate — step 5", () => {
 
   it("treats a result with wrong language as no match", async () => {
     await seedPastGrace(statePath);
-    const { svc } = makeServiceWithSearch(
+    const { svc } = makeServiceWithBazarrMock(
       statePath,
       { movies: [MOVIE], episodes: [] },
       [makeResult({ language: "en" })],
@@ -373,7 +371,7 @@ describe("SubstituteService.processCandidate — step 5", () => {
 
   it("treats a result with mismatched forced flag as no match", async () => {
     await seedPastGrace(statePath);
-    const { svc } = makeServiceWithSearch(
+    const { svc } = makeServiceWithBazarrMock(
       statePath,
       { movies: [MOVIE], episodes: [] },
       [makeResult({ forced: true })],
@@ -387,7 +385,7 @@ describe("SubstituteService.processCandidate — step 5", () => {
 
   it("treats a result with mismatched hearingImpaired flag as no match", async () => {
     await seedPastGrace(statePath);
-    const { svc } = makeServiceWithSearch(
+    const { svc } = makeServiceWithBazarrMock(
       statePath,
       { movies: [MOVIE], episodes: [] },
       [makeResult({ hearingImpaired: true })],
