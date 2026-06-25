@@ -10,7 +10,8 @@ import {
 } from "./clients/bazarr";
 import type { SonarrClient } from "./clients/sonarr-client";
 import type { RadarrClient } from "./clients/radarr-client";
-import { selectBestRelease } from "./select-best-release";
+import { selectBestRelease, isCutoffOnly } from "./select-best-release";
+import { titlesMatch } from "./titles-match";
 
 type SubtitleTarget = {
   item: WantedEntry;
@@ -148,17 +149,29 @@ export class SubstituteService {
     const best = selectBestRelease(arrReleases, candidateNames);
 
     if (!best) {
-      const approved = arrReleases.filter((r) => r.approved).length;
+      const eligibleReleases = arrReleases.filter((r) => r.approved || isCutoffOnly(r));
       log(
         "info",
         "no-arr-match",
-        `${label} lang=${lang} — ${arrReleases.length} indexer result(s), ${approved} approved, none title-match ${candidateNames.length} Bazarr candidate(s)`,
+        `${label} lang=${lang} — ${arrReleases.length} indexer result(s), ${eligibleReleases.length} eligible, none title-match ${candidateNames.length} Bazarr candidate(s)`,
       );
+      log("debug", "no-arr-match", `bazarr: ${candidateNames.map((n) => `"${n}"`).join(" | ")}`);
+      log("debug", "no-arr-match", `indexer: ${eligibleReleases.map((r) => `"${r.title}"`).join(" | ")}`);
+      const unapprovedMatches = arrReleases.filter(
+        (r) => !r.approved && candidateNames.some((name) => titlesMatch(r.title, name)),
+      );
+      if (unapprovedMatches.length > 0) {
+        for (const r of unapprovedMatches) {
+          const reasons = r.rejections?.join("; ") ?? "no rejection reasons";
+          log("debug", "no-arr-match", `unapproved title-match: "${r.title}" — ${reasons}`);
+        }
+      }
       return;
     }
 
     const currentTitle = target.item.sceneName ?? "(unknown)";
-    const grabDesc = `score=${best.customFormatScore} seeders=${best.seeders ?? "n/a"} title="${best.title}"`;
+    const grabTag = isCutoffOnly(best) ? " [cutoff-override]" : "";
+    const grabDesc = `score=${best.customFormatScore} seeders=${best.seeders ?? "n/a"} title="${best.title}"${grabTag}`;
 
     if (this.config.dryRun) {
       log("info", "arr-grab", `${label} lang=${lang} [DRY-RUN] current="${currentTitle}" → wouldGrab ${grabDesc}`);

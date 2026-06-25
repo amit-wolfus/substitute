@@ -1,12 +1,21 @@
 import type { ArrRelease } from "./clients/arr.types";
 import { titlesMatch } from "./titles-match";
 
+export function isCutoffOnly(r: ArrRelease): boolean {
+  return (
+    !r.approved &&
+    Array.isArray(r.rejections) &&
+    r.rejections.length > 0 &&
+    r.rejections.every((reason) => reason.startsWith("Existing file meets cutoff"))
+  );
+}
+
 export function selectBestRelease(
   releases: ArrRelease[],
   candidateNames: string[],
 ): ArrRelease | undefined {
   return releases
-    .filter((r) => r.approved && candidateNames.some((name) => titlesMatch(r.title, name)))
+    .filter((r) => (r.approved || isCutoffOnly(r)) && candidateNames.some((name) => titlesMatch(r.title, name)))
     .sort((a, b) => {
       if (b.customFormatScore !== a.customFormatScore) {
         return b.customFormatScore - a.customFormatScore;

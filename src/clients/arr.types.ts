@@ -4,6 +4,7 @@ export interface ArrRelease {
   title: string;
   protocol: string;
   approved: boolean;
+  rejections?: string[];
   customFormatScore: number;
   qualityWeight: number;
   seeders?: number;
