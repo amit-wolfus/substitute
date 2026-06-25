@@ -38,7 +38,9 @@ function targetKey(target: SubtitleTarget): string {
 }
 
 function targetLabel(target: SubtitleTarget): string {
-  if (isMovie(target.item)) return `movie="${target.item.title}"`;
+  if (isMovie(target.item)) {
+    return `movie="${target.item.title}"`;
+  }
   return `show="${target.item.seriesTitle}" ep=${target.item.episodeNumber}`;
 }
 

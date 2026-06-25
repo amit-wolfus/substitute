@@ -11,7 +11,9 @@ export class SonarrClient {
       `${this.baseUrl}/api/v3/release?seriesId=${seriesId}&episodeId=${episodeId}`,
       { headers: { "X-Api-Key": this.apiKey } },
     );
-    if (!res.ok) throw new Error(`Sonarr interactiveSearch failed: ${res.status}`);
+    if (!res.ok) {
+      throw new Error(`Sonarr interactiveSearch failed: ${res.status}`);
+    }
     return res.json() as Promise<ArrRelease[]>;
   }
 
@@ -21,6 +23,8 @@ export class SonarrClient {
       headers: { "X-Api-Key": this.apiKey, "Content-Type": "application/json" },
       body: JSON.stringify(release),
     });
-    if (!res.ok) throw new Error(`Sonarr grabRelease failed: ${res.status}`);
+    if (!res.ok) {
+      throw new Error(`Sonarr grabRelease failed: ${res.status}`);
+    }
   }
 }

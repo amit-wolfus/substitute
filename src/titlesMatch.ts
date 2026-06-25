@@ -1,5 +1,7 @@
 export function titlesMatch(a: string, b: string): boolean {
-  if (!a || !b) return false;
+  if (!a || !b) {
+    return false;
+  }
   return normalize(a) === normalize(b);
 }
 
