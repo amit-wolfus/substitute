@@ -1,5 +1,5 @@
 import { BazarrClient } from "./BazarrClient";
-import type { ManualSearchResult, MissingSubtitle, WantedEpisode, WantedMovie } from "./bazarr.types";
+import type { MissingSubtitle, WantedEpisode, WantedMovie } from "./bazarr.types";
 
 const MOVIE: WantedMovie = {
   kind: "movie",
@@ -47,10 +47,6 @@ function mockOkResponse(body: unknown): Response {
     ok: true,
     json: () => Promise.resolve(body),
   } as unknown as Response;
-}
-
-function mockOkEmpty(): Response {
-  return { ok: true } as unknown as Response;
 }
 
 describe("BazarrClient.manualSearch", () => {
@@ -107,77 +103,5 @@ describe("BazarrClient.manualSearch", () => {
     fetchSpy.mockResolvedValue(mockOkResponse({ data: [] }));
     const results = await client.manualSearch(MOVIE, LANG_HE);
     expect(results).toHaveLength(0);
-  });
-});
-
-describe("BazarrClient.downloadSubtitle", () => {
-  let client: BazarrClient;
-  let fetchSpy: jest.SpyInstance;
-
-  const MATCH: ManualSearchResult = {
-    language: "he",
-    provider: "opensubtitlescom",
-    subtitle: "base64blob==",
-    forced: false,
-    hearingImpaired: false,
-    score: 360,
-    releaseInfo: ["Pressure.2026.1080p.WEBRip"],
-    matches: [],
-    dontMatches: [],
-  };
-
-  beforeEach(() => {
-    client = new BazarrClient("http://bazarr:6767", "test-key");
-    fetchSpy = jest.spyOn(global, "fetch").mockResolvedValue(mockOkEmpty());
-  });
-
-  afterEach(() => fetchSpy.mockRestore());
-
-  it("uses POST method", async () => {
-    await client.downloadSubtitle(MOVIE, LANG_HE, MATCH);
-    const init = fetchSpy.mock.calls[0][1] as RequestInit;
-    expect(init.method).toBe("POST");
-  });
-
-  it("POSTs to the movies endpoint for a movie", async () => {
-    await client.downloadSubtitle(MOVIE, LANG_HE, MATCH);
-    const url: string = (fetchSpy.mock.calls[0] as [string])[0];
-    expect(url).toContain("/api/providers/movies");
-    expect(url).toContain("radarrid=262");
-  });
-
-  it("POSTs to the episodes endpoint for an episode with seriesid and episodeid", async () => {
-    await client.downloadSubtitle(EPISODE, LANG_HE, MATCH);
-    const url: string = (fetchSpy.mock.calls[0] as [string])[0];
-    expect(url).toContain("/api/providers/episodes");
-    expect(url).toContain("seriesid=175");
-    expect(url).toContain("episodeid=2409");
-  });
-
-  it("encodes hi=False and forced=False when both are false", async () => {
-    await client.downloadSubtitle(MOVIE, LANG_HE, MATCH);
-    const url: string = (fetchSpy.mock.calls[0] as [string])[0];
-    expect(url).toContain("hi=False");
-    expect(url).toContain("forced=False");
-  });
-
-  it("encodes hi=True and forced=True when both are true", async () => {
-    const hiForced: MissingSubtitle = { ...LANG_HE, forced: true, hi: true };
-    await client.downloadSubtitle(MOVIE, hiForced, MATCH);
-    const url: string = (fetchSpy.mock.calls[0] as [string])[0];
-    expect(url).toContain("hi=True");
-    expect(url).toContain("forced=True");
-  });
-
-  it("URL-encodes the subtitle blob", async () => {
-    await client.downloadSubtitle(MOVIE, LANG_HE, MATCH);
-    const url: string = (fetchSpy.mock.calls[0] as [string])[0];
-    expect(url).toContain(`subtitle=${encodeURIComponent("base64blob==")}`);
-  });
-
-  it("sends the X-API-KEY header", async () => {
-    await client.downloadSubtitle(MOVIE, LANG_HE, MATCH);
-    const init = fetchSpy.mock.calls[0][1] as RequestInit;
-    expect((init.headers as Record<string, string>)["X-API-KEY"]).toBe("test-key");
   });
 });

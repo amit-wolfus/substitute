@@ -5,7 +5,6 @@ export interface Config {
   radarrApiKey: string;
   sonarrUrl: string;
   sonarrApiKey: string;
-  openSubtitlesApiKey: string;
   pollIntervalMs: number;
   graceMs: number;
   recheckCooldownMs: number;
@@ -24,7 +23,6 @@ export function loadConfig(): Config {
     radarrApiKey:        e["RADARR_API_KEY"]        ?? "",
     sonarrUrl:           e["SONARR_URL"]             ?? "http://sonarr:8989",
     sonarrApiKey:        e["SONARR_API_KEY"]        ?? "",
-    openSubtitlesApiKey: e["OPENSUBTITLES_API_KEY"] ?? "",
     pollIntervalMs:      Number(e["POLL_INTERVAL_MINUTES"]  ?? 15) * 60_000,
     graceMs:             Number(e["GRACE_MINUTES"]          ?? 10) * 60_000,
     recheckCooldownMs:   Number(e["RECHECK_COOLDOWN_HOURS"] ?? 24) * 3_600_000,
