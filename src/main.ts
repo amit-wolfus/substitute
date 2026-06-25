@@ -1,9 +1,9 @@
 import { setTimeout as sleep } from "timers/promises";
 import { loadConfig } from "./config";
 import { BazarrClient } from "./clients/bazarr";
-import { SonarrClient } from "./clients/SonarrClient";
-import { RadarrClient } from "./clients/RadarrClient";
-import { SubstituteService } from "./SubstituteService";
+import { SonarrClient } from "./clients/sonarr-client";
+import { RadarrClient } from "./clients/radarr-client";
+import { SubstituteService } from "./substitute-service";
 
 async function main(): Promise<void> {
   const config = loadConfig();

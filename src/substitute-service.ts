@@ -8,8 +8,9 @@ import {
   type WantedEpisode,
   type WantedMovie,
 } from "./clients/bazarr";
-import type { SonarrClient } from "./clients/SonarrClient";
-import type { RadarrClient } from "./clients/RadarrClient";
+import type { SonarrClient } from "./clients/sonarr-client";
+import type { RadarrClient } from "./clients/radarr-client";
+import { selectBestRelease } from "./select-best-release";
 
 type SubtitleTarget = {
   item: WantedEntry;
@@ -37,7 +38,9 @@ function targetKey(target: SubtitleTarget): string {
 }
 
 function targetLabel(target: SubtitleTarget): string {
-  if (isMovie(target.item)) return `movie="${target.item.title}"`;
+  if (isMovie(target.item)) {
+    return `movie="${target.item.title}"`;
+  }
   return `show="${target.item.seriesTitle}" ep=${target.item.episodeNumber}`;
 }
 
@@ -131,11 +134,40 @@ export class SubstituteService {
       return;
     }
 
-    log(
-      "info",
-      "subs-other-releases",
-      `${label} lang=${lang} — found ${matches.length} sub(s) for other releases → step 6 not yet implemented`,
-    );
+    log("info", "subs-other-releases", `${label} lang=${lang} — found ${matches.length} sub(s) for other releases`);
+
+    const candidateNames = [...new Set(matches.flatMap((m) => m.releaseInfo))];
+
+    const arrReleases = isMovie(target.item)
+      ? await this.radarr.interactiveSearch(target.item.radarrId)
+      : await this.sonarr.interactiveSearch(
+          target.item.sonarrSeriesId,
+          target.item.sonarrEpisodeId,
+        );
+
+    const best = selectBestRelease(arrReleases, candidateNames);
+
+    if (!best) {
+      const approved = arrReleases.filter((r) => r.approved).length;
+      log(
+        "info",
+        "no-arr-match",
+        `${label} lang=${lang} — ${arrReleases.length} indexer result(s), ${approved} approved, none title-match ${candidateNames.length} Bazarr candidate(s)`,
+      );
+      return;
+    }
+
+    const currentTitle = target.item.sceneName ?? "(unknown)";
+    const grabDesc = `score=${best.customFormatScore} seeders=${best.seeders ?? "n/a"} title="${best.title}"`;
+
+    if (this.config.dryRun) {
+      log("info", "arr-grab", `${label} lang=${lang} [DRY-RUN] current="${currentTitle}" → wouldGrab ${grabDesc}`);
+    } else {
+      log("info", "arr-grab", `${label} lang=${lang} current="${currentTitle}" → grabbing ${grabDesc}`);
+      await (isMovie(target.item) ? this.radarr : this.sonarr).grabRelease(best);
+    }
+
+    this.recordActed(key, state, nowMs);
   }
 
   private recordActed(key: string, state: State, nowMs: number): void {

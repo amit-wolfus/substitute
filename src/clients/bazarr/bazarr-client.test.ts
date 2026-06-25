@@ -1,4 +1,4 @@
-import { BazarrClient } from "./BazarrClient";
+import { BazarrClient } from "./bazarr-client";
 import type { MissingSubtitle, WantedEpisode, WantedMovie } from "./bazarr.types";
 
 const MOVIE: WantedMovie = {

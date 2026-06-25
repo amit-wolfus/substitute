@@ -1,5 +1,5 @@
-export { BazarrClient } from "./BazarrClient";
-export type { BazarrWanted } from "./BazarrClient";
+export { BazarrClient } from "./bazarr-client";
+export type { BazarrWanted } from "./bazarr-client";
 export type {
   ManualSearchResult,
   MissingSubtitle,

@@ -10,7 +10,6 @@ export interface Config {
   recheckCooldownMs: number;
   dryRun: boolean;
   languageAllowlist: string[];
-  matchRequires: string[];
   statePath: string;
 }
 
@@ -30,8 +29,6 @@ export function loadConfig(): Config {
     languageAllowlist:   e["LANGUAGE_ALLOWLIST"]
                            ? e["LANGUAGE_ALLOWLIST"].split(",").map((s) => s.trim())
                            : [],
-    matchRequires:       (e["MATCH_REQUIRES"] ?? "resolution,source")
-                           .split(",").map((s) => s.trim()),
     statePath:           e["STATE_PATH"] ?? "/data/state.json",
   };
 }
