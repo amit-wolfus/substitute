@@ -1,4 +1,4 @@
-import { titlesMatch } from "./titlesMatch";
+import { titlesMatch } from "./titles-match";
 
 describe("titlesMatch", () => {
   it("matches identical strings", () => {

@@ -1,5 +1,5 @@
 import type { ArrRelease } from "./clients/arr.types";
-import { titlesMatch } from "./titlesMatch";
+import { titlesMatch } from "./titles-match";
 
 export function selectBestRelease(
   releases: ArrRelease[],

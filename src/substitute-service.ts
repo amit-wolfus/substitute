@@ -8,9 +8,9 @@ import {
   type WantedEpisode,
   type WantedMovie,
 } from "./clients/bazarr";
-import type { SonarrClient } from "./clients/SonarrClient";
-import type { RadarrClient } from "./clients/RadarrClient";
-import { selectBestRelease } from "./selectBestRelease";
+import type { SonarrClient } from "./clients/sonarr-client";
+import type { RadarrClient } from "./clients/radarr-client";
+import { selectBestRelease } from "./select-best-release";
 
 type SubtitleTarget = {
   item: WantedEntry;

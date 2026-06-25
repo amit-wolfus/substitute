@@ -3,11 +3,11 @@ import { tmpdir } from "os";
 import { join } from "path";
 import type { Config } from "./config";
 import { loadState, saveState } from "./state";
-import { SubstituteService } from "./SubstituteService";
+import { SubstituteService } from "./substitute-service";
 import type { BazarrClient, BazarrWanted, WantedEpisode, WantedMovie } from "./clients/bazarr";
 import type { ManualSearchResult } from "./clients/bazarr/bazarr.types";
-import type { SonarrClient } from "./clients/SonarrClient";
-import type { RadarrClient } from "./clients/RadarrClient";
+import type { SonarrClient } from "./clients/sonarr-client";
+import type { RadarrClient } from "./clients/radarr-client";
 import type { ArrRelease } from "./clients/arr.types";
 
 // Fixtures
