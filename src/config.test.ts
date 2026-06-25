@@ -17,7 +17,6 @@ describe("loadConfig", () => {
     delete process.env.RECHECK_COOLDOWN_HOURS;
     delete process.env.DRY_RUN;
     delete process.env.LANGUAGE_ALLOWLIST;
-    delete process.env.MATCH_REQUIRES;
     delete process.env.STATE_PATH;
 
     const c = loadConfig();
@@ -26,7 +25,6 @@ describe("loadConfig", () => {
     expect(c.recheckCooldownMs).toBe(24 * 3_600_000);
     expect(c.dryRun).toBe(true);
     expect(c.languageAllowlist).toEqual([]);
-    expect(c.matchRequires).toEqual(["resolution", "source"]);
     expect(c.statePath).toBe("/data/state.json");
   });
 

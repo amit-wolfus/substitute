@@ -46,7 +46,6 @@ function makeConfig(statePath: string, overrides: Partial<Config> = {}): Config 
     recheckCooldownMs: 24 * 3_600_000,
     dryRun: true,
     languageAllowlist: [],
-    matchRequires: ["resolution", "source"],
     statePath,
     ...overrides,
   };
