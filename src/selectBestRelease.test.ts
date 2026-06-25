@@ -1,5 +1,5 @@
-import type { ArrRelease } from "./clients/arr.types.js";
-import { selectBestRelease } from "./selectBestRelease.js";
+import type { ArrRelease } from "./clients/arr.types";
+import { selectBestRelease } from "./selectBestRelease";
 
 function makeRelease(overrides: Partial<ArrRelease> = {}): ArrRelease {
   return {
